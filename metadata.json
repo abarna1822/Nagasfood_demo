@@ -1,0 +1,8 @@
+{
+  "name": "NAGAS FOODS — Trichy",
+  "description": "Purity You Can Trust, Quality You Deserve. Artisanal Iranian dates, raw forest honey, and hand-sorted dry fruits from Trichy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
