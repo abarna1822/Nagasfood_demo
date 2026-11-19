@@ -1,4 +1,4 @@
-import { IMG_DATES, IMG_HONEY, IMG_NUTS } from '../data/seedData';
+import { IMG_DATES_FLATLAY, IMG_HONEY_JAR, IMG_DATES_PALM } from '../data/seedData';
 import { ProductMedia } from './ProductMedia';
 
 interface AboutPageProps {
@@ -7,7 +7,7 @@ interface AboutPageProps {
 
 export function AboutPage({ onBrowseProducts }: AboutPageProps) {
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 sm:py-20 space-y-16">
+    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-28 sm:pt-32 pb-20 space-y-16">
       {/* Split Story Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
         <div className="lg:col-span-6 flex flex-col justify-center space-y-5">
@@ -40,10 +40,10 @@ export function AboutPage({ onBrowseProducts }: AboutPageProps) {
 
         <div className="lg:col-span-6 grid grid-cols-2 gap-4">
           <div className="aspect-[4/5] rounded-2xl overflow-hidden border border-[#2A1408]/10">
-            <ProductMedia src={IMG_DATES} alt="Hand-sorted Iranian Mazafati Dates" />
+            <ProductMedia src={IMG_DATES_FLATLAY} alt="Hand-sorted Iranian Kimia Dates" />
           </div>
           <div className="aspect-[4/5] rounded-2xl overflow-hidden border border-[#2A1408]/10 mt-6">
-            <ProductMedia src={IMG_HONEY} alt="Wild Forest Raw Honey Jar" />
+            <ProductMedia src={IMG_HONEY_JAR} alt="Wild Forest Raw Honey Jar" />
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@ export function AboutPage({ onBrowseProducts }: AboutPageProps) {
       {/* Storefront Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#FFFDF7] border border-[#2A1408]/10 rounded-3xl p-6 sm:p-10">
         <div className="lg:col-span-5 aspect-[4/3] rounded-2xl overflow-hidden">
-          <ProductMedia src={IMG_NUTS} alt="Nuts and dry fruits packed in kraft pouches" />
+          <ProductMedia src={IMG_DATES_PALM} alt="Fresh date clusters harvested on the palm" />
         </div>
         <div className="lg:col-span-7 space-y-4">
           <p className="text-xs uppercase tracking-widest text-[#A41220] font-semibold">

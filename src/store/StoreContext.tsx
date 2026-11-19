@@ -7,41 +7,59 @@ import {
   SEED_TESTIMONIALS,
 } from '../data/seedData';
 import type {
+  BackendMode,
   CartItem,
   HeroMediaConfig,
   Inquiry,
   Order,
   OrderStage,
+  PaymentMethod,
   Product,
+  ShippingDetails,
   SiteSettings,
   Testimonial,
 } from '../types/commerce';
 import { normalizePhone } from '../utils/commerce';
 
-const STORAGE_KEYS = {
-  products: 'nagas_foods_v1_products',
-  cart: 'nagas_foods_v1_cart',
-  orders: 'nagas_foods_v1_orders',
-  testimonials: 'nagas_foods_v1_testimonials',
-  inquiries: 'nagas_foods_v1_inquiries',
-  settings: 'nagas_foods_v1_settings',
-};
+const CART_STORAGE_KEY = 'nagas_foods_v1_cart';
+const ADMIN_TOKEN_KEY = 'nagas_foods_v1_admin_token';
 
-function readStorage<T>(key: string, fallback: T): T {
+function readCartStorage(): CartItem[] {
   try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as CartItem[]) : [];
   } catch {
-    return fallback;
+    return [];
   }
 }
 
-function writeStorage<T>(key: string, value: T): void {
+function writeCartStorage(cart: CartItem[]): void {
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   } catch {
-    // Ignore storage quota errors gracefully
+    // Ignore quota errors
+  }
+}
+
+function readSessionToken(): string {
+  try {
+    return window.sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeSessionToken(token: string): void {
+  try {
+    if (token) {
+      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+  } catch {
+    // Ignore storage errors
   }
 }
 
@@ -52,58 +70,110 @@ interface StoreContextValue {
   testimonials: Testimonial[];
   inquiries: Inquiry[];
   settings: SiteSettings;
+  backendMode: BackendMode;
+  loading: boolean;
+  adminToken: string;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  refreshFromServer: () => Promise<void>;
+  loginAdmin: (passcode: string) => Promise<{ ok: boolean; error?: string }>;
+  logoutAdmin: () => void;
   addToCart: (product: Product, format: string, quantity?: number) => void;
   updateCartQuantity: (productId: string, format: string, delta: number) => void;
   removeFromCart: (productId: string, format: string) => void;
   clearCart: () => void;
-  placeOrder: (order: Order) => void;
-  updateOrderStage: (orderId: string, stage: OrderStage) => void;
+  placeOrder: (payload: {
+    customer: ShippingDetails;
+    items: CartItem[];
+    paymentMethod: PaymentMethod;
+  }) => Promise<Order>;
+  updateOrderStage: (orderId: string, stage: OrderStage) => Promise<void>;
   findOrdersByPhone: (phone: string) => Order[];
-  upsertProduct: (product: Product) => void;
-  deleteProduct: (productId: string) => void;
-  toggleProductSoldOut: (productId: string) => void;
-  addTestimonial: (t: Omit<Testimonial, 'id' | 'createdAt'>) => void;
-  deleteTestimonial: (id: string) => void;
-  addInquiry: (inq: Omit<Inquiry, 'id' | 'createdAt' | 'read'>) => void;
-  toggleInquiryRead: (id: string) => void;
-  updateSettings: (partial: Partial<SiteSettings>) => void;
-  updateHeroMedia: (partial: Partial<HeroMediaConfig>) => void;
+  upsertProduct: (product: Product) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
+  toggleProductSoldOut: (productId: string) => Promise<void>;
+  addTestimonial: (t: Omit<Testimonial, 'id' | 'createdAt'>) => Promise<void>;
+  deleteTestimonial: (id: string) => Promise<void>;
+  addInquiry: (inq: Omit<Inquiry, 'id' | 'createdAt' | 'read'>) => Promise<void>;
+  toggleInquiryRead: (id: string) => Promise<void>;
+  updateSettings: (partial: Partial<SiteSettings>) => Promise<void>;
+  updateHeroMedia: (partial: Partial<HeroMediaConfig>) => Promise<void>;
   exportAllData: () => string;
-  importAllData: (jsonText: string) => { ok: boolean; error?: string };
-  resetAllData: () => void;
+  importAllData: (jsonText: string) => Promise<{ ok: boolean; error?: string }>;
+  resetAllData: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(() =>
-    readStorage(STORAGE_KEYS.products, SEED_PRODUCTS)
-  );
-  const [cart, setCart] = useState<CartItem[]>(() =>
-    readStorage(STORAGE_KEYS.cart, [])
-  );
-  const [orders, setOrders] = useState<Order[]>(() =>
-    readStorage(STORAGE_KEYS.orders, SEED_ORDERS)
-  );
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(() =>
-    readStorage(STORAGE_KEYS.testimonials, SEED_TESTIMONIALS)
-  );
-  const [inquiries, setInquiries] = useState<Inquiry[]>(() =>
-    readStorage(STORAGE_KEYS.inquiries, SEED_INQUIRIES)
-  );
-  const [settings, setSettings] = useState<SiteSettings>(() =>
-    readStorage(STORAGE_KEYS.settings, SEED_SETTINGS)
-  );
+  const [products, setProducts] = useState<Product[]>(SEED_PRODUCTS);
+  const [cart, setCart] = useState<CartItem[]>(() => readCartStorage());
+  const [orders, setOrders] = useState<Order[]>(SEED_ORDERS);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(SEED_TESTIMONIALS);
+  const [inquiries, setInquiries] = useState<Inquiry[]>(SEED_INQUIRIES);
+  const [settings, setSettings] = useState<SiteSettings>(SEED_SETTINGS);
+  const [backendMode, setBackendMode] = useState<BackendMode>('local-json');
+  const [loading, setLoading] = useState(true);
+  const [adminToken, setAdminToken] = useState<string>(() => readSessionToken());
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  useEffect(() => writeStorage(STORAGE_KEYS.products, products), [products]);
-  useEffect(() => writeStorage(STORAGE_KEYS.cart, cart), [cart]);
-  useEffect(() => writeStorage(STORAGE_KEYS.orders, orders), [orders]);
-  useEffect(() => writeStorage(STORAGE_KEYS.testimonials, testimonials), [testimonials]);
-  useEffect(() => writeStorage(STORAGE_KEYS.inquiries, inquiries), [inquiries]);
-  useEffect(() => writeStorage(STORAGE_KEYS.settings, settings), [settings]);
+  useEffect(() => {
+    writeCartStorage(cart);
+  }, [cart]);
+
+  const refreshFromServer = async () => {
+    try {
+      const res = await fetch('/api/bootstrap');
+      if (!res.ok) throw new Error('Bootstrap fetch failed');
+      const data = await res.json();
+      if (Array.isArray(data.products)) setProducts(data.products);
+      if (Array.isArray(data.orders)) setOrders(data.orders);
+      if (Array.isArray(data.testimonials)) setTestimonials(data.testimonials);
+      if (Array.isArray(data.inquiries)) setInquiries(data.inquiries);
+      if (data.settings) setSettings(data.settings);
+      if (data.backendMode) setBackendMode(data.backendMode);
+    } catch {
+      // Keep seed fallback cleanly if offline
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshFromServer();
+  }, []);
+
+  const authHeaders = (): Record<string, string> => ({
+    'Content-Type': 'application/json',
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  });
+
+  const loginAdmin = async (
+    passcode: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: data.error || 'Incorrect passcode.' };
+      }
+      setAdminToken(data.token);
+      writeSessionToken(data.token);
+      if (data.backendMode) setBackendMode(data.backendMode);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Unable to reach verification server.' };
+    }
+  };
+
+  const logoutAdmin = () => {
+    setAdminToken('');
+    writeSessionToken('');
+  };
 
   const addToCart = (product: Product, format: string, quantity = 1) => {
     if (product.soldOut) return;
@@ -159,15 +229,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const placeOrder = (order: Order) => {
-    setOrders((prev) => [order, ...prev]);
+  const placeOrder = async (payload: {
+    customer: ShippingDetails;
+    items: CartItem[];
+    paymentMethod: PaymentMethod;
+  }): Promise<Order> => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.order) {
+      throw new Error(data.error || 'Could not place order.');
+    }
+    const created = data.order as Order;
+    setOrders((prev) => [created, ...prev]);
     setCart([]);
+    return created;
   };
 
-  const updateOrderStage = (orderId: string, stage: OrderStage) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, stage } : o))
-    );
+  const updateOrderStage = async (orderId: string, stage: OrderStage) => {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/stage`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ stage }),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.orders)) {
+      setOrders(data.orders);
+    }
   };
 
   const findOrdersByPhone = (phone: string): Order[] => {
@@ -178,70 +273,152 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const upsertProduct = (product: Product) => {
-    setProducts((prev) => {
-      const exists = prev.some((p) => p.id === product.id);
-      if (exists) {
-        return prev.map((p) => (p.id === product.id ? product : p));
-      }
-      return [product, ...prev];
+  const upsertProduct = async (product: Product) => {
+    const res = await fetch('/api/admin/products', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(product),
     });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.products)) {
+      setProducts(data.products);
+    }
   };
 
-  const deleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  const deleteProduct = async (productId: string) => {
+    const res = await fetch(`/api/admin/products/${encodeURIComponent(productId)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.products)) {
+      setProducts(data.products);
+    }
   };
 
-  const toggleProductSoldOut = (productId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, soldOut: !p.soldOut } : p))
+  const toggleProductSoldOut = async (productId: string) => {
+    const res = await fetch(
+      `/api/admin/products/${encodeURIComponent(productId)}/sold-out`,
+      {
+        method: 'PATCH',
+        headers: authHeaders(),
+      }
     );
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.products)) {
+      setProducts(data.products);
+    }
   };
 
-  const addTestimonial = (t: Omit<Testimonial, 'id' | 'createdAt'>) => {
-    const next: Testimonial = {
-      ...t,
-      id: `tm-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    setTestimonials((prev) => [next, ...prev]);
+  const addTestimonial = async (t: Omit<Testimonial, 'id' | 'createdAt'>) => {
+    const res = await fetch('/api/admin/testimonials', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(t),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.testimonials)) {
+      setTestimonials(data.testimonials);
+    }
   };
 
-  const deleteTestimonial = (id: string) => {
-    setTestimonials((prev) => prev.filter((t) => t.id !== id));
+  const deleteTestimonial = async (id: string) => {
+    const res = await fetch(`/api/admin/testimonials/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.testimonials)) {
+      setTestimonials(data.testimonials);
+    }
   };
 
-  const addInquiry = (inq: Omit<Inquiry, 'id' | 'createdAt' | 'read'>) => {
-    const next: Inquiry = {
-      ...inq,
-      id: `inq-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-    setInquiries((prev) => [next, ...prev]);
+  const addInquiry = async (inq: Omit<Inquiry, 'id' | 'createdAt' | 'read'>) => {
+    const res = await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inq),
+    });
+    const data = await res.json();
+    if (res.ok && data.inquiry) {
+      setInquiries((prev) => [data.inquiry as Inquiry, ...prev]);
+    }
   };
 
-  const toggleInquiryRead = (id: string) => {
-    setInquiries((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, read: !i.read } : i))
-    );
+  const toggleInquiryRead = async (id: string) => {
+    const res = await fetch(`/api/admin/inquiries/${encodeURIComponent(id)}/read`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.inquiries)) {
+      setInquiries(data.inquiries);
+    }
   };
 
-  const updateSettings = (partial: Partial<SiteSettings>) => {
+  const updateSettings = async (partial: Partial<SiteSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));
+    const res = await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(partial),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && data.settings) {
+      setSettings(data.settings);
+    }
   };
 
-  const updateHeroMedia = (partial: Partial<HeroMediaConfig>) => {
-    setSettings((prev) => ({
-      ...prev,
-      heroMedia: { ...prev.heroMedia, ...partial },
-    }));
+  const updateHeroMedia = async (partial: Partial<HeroMediaConfig>) => {
+    const nextHero = { ...settings.heroMedia, ...partial };
+    setSettings((prev) => ({ ...prev, heroMedia: nextHero }));
+    const res = await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ heroMedia: nextHero }),
+    });
+    if (res.status === 401) {
+      logoutAdmin();
+      return;
+    }
+    const data = await res.json();
+    if (res.ok && data.settings) {
+      setSettings(data.settings);
+    }
   };
 
   const exportAllData = (): string => {
     return JSON.stringify(
       {
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         products,
         orders,
@@ -254,18 +431,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const importAllData = (jsonText: string): { ok: boolean; error?: string } => {
+  const importAllData = async (
+    jsonText: string
+  ): Promise<{ ok: boolean; error?: string }> => {
     try {
       const parsed = JSON.parse(jsonText);
-      if (!parsed || typeof parsed !== 'object') {
-        return { ok: false, error: 'Invalid JSON structure.' };
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: data.error || 'Import failed.' };
       }
-      if (Array.isArray(parsed.products)) setProducts(parsed.products);
-      if (Array.isArray(parsed.orders)) setOrders(parsed.orders);
-      if (Array.isArray(parsed.testimonials)) setTestimonials(parsed.testimonials);
-      if (Array.isArray(parsed.inquiries)) setInquiries(parsed.inquiries);
-      if (parsed.settings && typeof parsed.settings === 'object') {
-        setSettings(parsed.settings);
+      if (data.snapshot) {
+        setProducts(data.snapshot.products);
+        setOrders(data.snapshot.orders);
+        setTestimonials(data.snapshot.testimonials);
+        setInquiries(data.snapshot.inquiries);
+        setSettings(data.snapshot.settings);
       }
       return { ok: true };
     } catch (err) {
@@ -276,13 +461,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetAllData = () => {
-    setProducts(SEED_PRODUCTS);
-    setOrders(SEED_ORDERS);
-    setTestimonials(SEED_TESTIMONIALS);
-    setInquiries(SEED_INQUIRIES);
-    setSettings(SEED_SETTINGS);
-    setCart([]);
+  const resetAllData = async () => {
+    const res = await fetch('/api/admin/reset', {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    if (res.ok && data.snapshot) {
+      setProducts(data.snapshot.products);
+      setOrders(data.snapshot.orders);
+      setTestimonials(data.snapshot.testimonials);
+      setInquiries(data.snapshot.inquiries);
+      setSettings(data.snapshot.settings);
+      setCart([]);
+    }
   };
 
   return (
@@ -294,8 +486,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         testimonials,
         inquiries,
         settings,
+        backendMode,
+        loading,
+        adminToken,
         isCartOpen,
         setIsCartOpen,
+        refreshFromServer,
+        loginAdmin,
+        logoutAdmin,
         addToCart,
         updateCartQuantity,
         removeFromCart,

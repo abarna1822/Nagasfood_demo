@@ -11,7 +11,7 @@ import {
   Upload,
   Video,
 } from 'lucide-react';
-import { HERO_PALM_IMAGE, IMG_DATES } from '../data/seedData';
+import { HERO_PALM_IMAGE, HERO_PALM_VIDEO, IMG_DATES } from '../data/seedData';
 import { useNagasStore } from '../store/StoreContext';
 import type { OrderStage, Product, ProductCategory } from '../types/commerce';
 import { formatINR, ORDER_STAGES } from '../utils/commerce';
@@ -25,8 +25,6 @@ type AdminTab =
   | 'settings'
   | 'data';
 
-const ADMIN_PASSCODE = 'nagas2026';
-
 export function AdminPanel() {
   const {
     products,
@@ -34,6 +32,10 @@ export function AdminPanel() {
     testimonials,
     inquiries,
     settings,
+    backendMode,
+    adminToken,
+    loginAdmin,
+    logoutAdmin,
     upsertProduct,
     deleteProduct,
     toggleProductSoldOut,
@@ -48,9 +50,10 @@ export function AdminPanel() {
     resetAllData,
   } = useNagasStore();
 
-  const [unlocked, setUnlocked] = useState(false);
+  const unlocked = Boolean(adminToken);
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
   const [tab, setTab] = useState<AdminTab>('overview');
 
   // Product editor state
@@ -76,13 +79,16 @@ export function AdminPanel() {
   const [importStatus, setImportStatus] = useState<string>('');
   const [settingsSaved, setSettingsSaved] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode.trim() === ADMIN_PASSCODE) {
-      setUnlocked(true);
-      setAuthError('');
+    setLoggingIn(true);
+    setAuthError('');
+    const result = await loginAdmin(passcode.trim());
+    setLoggingIn(false);
+    if (!result.ok) {
+      setAuthError(result.error || 'Incorrect passcode. Try nagas2026.');
     } else {
-      setAuthError('Incorrect passcode. Try nagas2026.');
+      setPasscode('');
     }
   };
 
@@ -201,9 +207,9 @@ export function AdminPanel() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        const res = importAllData(reader.result);
+        const res = await importAllData(reader.result);
         setImportStatus(
           res.ok
             ? 'Backup imported successfully.'
@@ -216,7 +222,7 @@ export function AdminPanel() {
 
   if (!unlocked) {
     return (
-      <section className="max-w-md mx-auto px-4 py-20">
+      <section className="max-w-md mx-auto px-4 pt-32 pb-20">
         <div className="bg-[#FFFDF7] border border-[#2A1408]/15 rounded-2xl p-8 shadow-sm">
           <div className="w-11 h-11 rounded-xl bg-[#6E0B16] text-[#FFFDF7] flex items-center justify-center mb-4">
             <Lock className="w-5 h-5" />
@@ -254,9 +260,10 @@ export function AdminPanel() {
             </div>
             <button
               type="submit"
-              className="w-full py-2.5 px-5 rounded-xl bg-[#A41220] text-[#FFFDF7] text-sm font-medium hover:bg-[#6E0B16] transition-colors cursor-pointer"
+              disabled={loggingIn}
+              className="w-full py-2.5 px-5 rounded-xl bg-[#A41220] text-[#FFFDF7] text-sm font-medium hover:bg-[#6E0B16] transition-colors cursor-pointer disabled:opacity-60"
             >
-              Unlock Dashboard
+              {loggingIn ? 'Verifying...' : 'Unlock Dashboard'}
             </button>
           </form>
         </div>
@@ -278,11 +285,14 @@ export function AdminPanel() {
   ];
 
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 py-10 sm:py-14">
+    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-28 sm:pt-32 pb-14">
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[#2A1408]/12">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#A41220] font-semibold">
-            Store Operations
+            Store Operations ·{' '}
+            {backendMode === 'supabase'
+              ? 'Supabase Connected'
+              : 'Server Local JSON Store (Add SUPABASE_URL & Key to sync cloud)'}
           </p>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#2A1408]">
             NAGAS FOODS Admin
@@ -290,7 +300,7 @@ export function AdminPanel() {
         </div>
         <button
           type="button"
-          onClick={() => setUnlocked(false)}
+          onClick={logoutAdmin}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2A1408]/20 text-sm font-medium text-[#2A1408] hover:bg-[#FFFDF7] cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
@@ -875,7 +885,7 @@ export function AdminPanel() {
                   updateHeroMedia({
                     mode: 'video',
                     imageUrl: HERO_PALM_IMAGE,
-                    videoUrl: '',
+                    videoUrl: HERO_PALM_VIDEO,
                     isCustomUploaded: false,
                   })
                 }
@@ -897,8 +907,8 @@ export function AdminPanel() {
               Export, Import & Reset Store Data
             </h2>
             <p className="text-sm text-[#2A1408]/75">
-              All catalogue items, orders, testimonials, inquiries, and hero
-              settings are persisted locally in browser storage.
+              Catalogue items, orders, testimonials, inquiries, and hero
+              settings are persisted on the backend ({backendMode === 'supabase' ? 'Supabase PostgreSQL' : 'Server JSON Store'}).
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -924,8 +934,8 @@ export function AdminPanel() {
 
               <button
                 type="button"
-                onClick={() => {
-                  resetAllData();
+                onClick={async () => {
+                  await resetAllData();
                   setImportStatus('All data reset to initial 25-product defaults.');
                 }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#6E0B16] text-[#6E0B16] text-sm font-medium cursor-pointer hover:bg-[#6E0B16]/5"

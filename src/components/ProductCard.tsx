@@ -68,7 +68,12 @@ export function ProductCard({
       <div className="p-4 flex-1 flex flex-col gap-3">
         <div>
           <p className="text-xs text-[#2A1408]/60 tracking-wide truncate">
-            {product.origin} · {product.category === 'dry-fruits' ? 'Dry Fruits & Nuts' : product.category === 'honey' ? 'Raw Honey' : 'Dates'}
+            {product.origin} ·{' '}
+            {product.category === 'dry-fruits'
+              ? 'Pouch & Box Range'
+              : product.category === 'honey'
+              ? 'Honey Collections'
+              : 'Dates & More'}
           </p>
           <div className="mt-1 flex items-baseline justify-between gap-2">
             <h3 className="font-display text-lg font-semibold text-[#2A1408] leading-snug">

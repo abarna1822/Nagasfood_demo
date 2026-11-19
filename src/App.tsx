@@ -33,24 +33,48 @@ function NagasShell() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const [scrollTick, setScrollTick] = useState(0);
+
+  useEffect(() => {
+    if (activeView === 'visit' || activeView === 'testimonials') {
+      const targetId =
+        activeView === 'visit' ? 'find-us-section' : 'testimonials-section';
+      const timer = window.setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }, 120);
+      return () => window.clearTimeout(timer);
+    }
+    window.scrollTo({ top: 0 });
+  }, [activeView, scrollTick]);
+
+  const navigate = (view: AppView) => {
+    setActiveView(view);
+    setScrollTick((t) => t + 1);
+  };
+
   const handleTrackOrder = (phone: string) => {
     setTrackPhone(phone);
-    setActiveView('orders');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('orders');
   };
+
+  const isHomeCanvas =
+    activeView === 'home' ||
+    activeView === 'visit' ||
+    activeView === 'testimonials';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFF7EA] text-[#2A1408]">
       <Navbar
         activeView={activeView}
-        onNavigate={setActiveView}
+        onNavigate={navigate}
         onOpenSearch={() => setSearchOpen(true)}
       />
 
       <main className="flex-1">
-        {activeView === 'home' && (
+        {isHomeCanvas && (
           <HomeSections
-            onNavigate={setActiveView}
+            onNavigate={navigate}
             onQuickView={setQuickViewProduct}
           />
         )}
@@ -58,14 +82,14 @@ function NagasShell() {
           <ProductsPage onQuickView={setQuickViewProduct} />
         )}
         {activeView === 'about' && (
-          <AboutPage onBrowseProducts={() => setActiveView('products')} />
+          <AboutPage onBrowseProducts={() => navigate('products')} />
         )}
         {activeView === 'orders' && <MyOrdersPage initialPhone={trackPhone} />}
         {activeView === 'contact' && <ContactSection standalone />}
         {activeView === 'admin' && <AdminPanel />}
       </main>
 
-      <Footer onNavigate={setActiveView} />
+      <Footer onNavigate={navigate} />
       <WhatsAppFloat />
 
       <SearchOverlay
@@ -81,7 +105,7 @@ function NagasShell() {
 
       <CartDrawer
         onProceedToCheckout={() => setCheckoutOpen(true)}
-        onBrowseProducts={() => setActiveView('products')}
+        onBrowseProducts={() => navigate('products')}
       />
 
       <CheckoutModal

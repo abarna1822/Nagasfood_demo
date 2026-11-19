@@ -18,27 +18,42 @@ export function ContactSection({ standalone = false }: { standalone?: boolean })
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const weeklyHours = getWeeklyShopHours();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validation = validateInquiryForm(form);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
 
-    addInquiry({
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      message: form.message.trim(),
-    });
-    setSubmitted(true);
-    setForm({ name: '', phone: '', email: '', message: '' });
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      await addInquiry({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        message: form.message.trim(),
+      });
+      setSubmitted(true);
+      setForm({ name: '', phone: '', email: '', message: '' });
+    } catch {
+      setSubmitError('Could not send inquiry. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 py-14 sm:py-20 space-y-16">
+    <section
+      id="testimonials-section"
+      className={`scroll-mt-24 sm:scroll-mt-28 max-w-[1440px] mx-auto px-4 sm:px-8 space-y-16 ${
+        standalone ? 'pt-28 sm:pt-32 pb-20' : 'py-14 sm:py-20'
+      }`}
+    >
       {/* Testimonials Grid */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
@@ -255,11 +270,16 @@ export function ContactSection({ standalone = false }: { standalone?: boolean })
               )}
             </div>
 
+            {submitError && (
+              <p className="text-xs font-medium text-[#A41220]">{submitError}</p>
+            )}
+
             <button
               type="submit"
-              className="px-6 py-3 rounded-xl bg-[#A41220] text-[#FFFDF7] text-sm font-medium hover:bg-[#6E0B16] transition-colors cursor-pointer"
+              disabled={submitting}
+              className="px-6 py-3 rounded-xl bg-[#A41220] text-[#FFFDF7] text-sm font-medium hover:bg-[#6E0B16] transition-colors cursor-pointer disabled:opacity-60"
             >
-              Send Inquiry
+              {submitting ? 'Sending...' : 'Send Inquiry'}
             </button>
           </form>
         </div>

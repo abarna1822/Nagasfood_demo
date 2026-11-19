@@ -1,7 +1,7 @@
 export type ProductCategory = 'dates' | 'honey' | 'dry-fruits';
 
 export interface ProductVariant {
-  format: string; // e.g., "100g Pouch", "100g Box", "200g Box", "250g Jar"
+  format: string; // e.g., "100g Pouch", "100g Box", "200g Box", "Container (400g)"
   price: number;  // INR
 }
 
@@ -13,7 +13,7 @@ export interface Product {
   tastingNote: string;
   description: string;
   imageUrl: string;
-  imageFocus?: string; // CSS object-position for varied visual framing
+  imageFocus?: string;
   variants: ProductVariant[];
   soldOut: boolean;
   featured?: boolean;
@@ -75,7 +75,7 @@ export interface Inquiry {
 export interface HeroMediaConfig {
   mode: 'video' | 'image';
   imageUrl: string;
-  videoUrl: string; // Uploaded data URL or custom URL
+  videoUrl: string;
   isCustomUploaded: boolean;
 }
 
@@ -87,10 +87,14 @@ export interface SiteSettings {
   heroMedia: HeroMediaConfig;
 }
 
+export type BackendMode = 'supabase' | 'local-json';
+
 export type AppView =
   | 'home'
-  | 'products'
   | 'about'
+  | 'products'
+  | 'testimonials'
+  | 'visit'
   | 'orders'
   | 'contact'
   | 'admin';

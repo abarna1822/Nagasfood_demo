@@ -30,13 +30,13 @@ export function ProductsPage({ onQuickView }: ProductsPageProps) {
 
   const tabs: Array<{ id: ProductCategory | 'all'; label: string; count: number }> = [
     { id: 'all', label: 'All Lines', count: counts.all },
-    { id: 'dates', label: 'Dates Harvest', count: counts.dates },
-    { id: 'honey', label: 'Raw Honey Jars', count: counts.honey },
-    { id: 'dry-fruits', label: 'Nuts & Dry Fruits', count: counts['dry-fruits'] },
+    { id: 'dates', label: 'Dates & More', count: counts.dates },
+    { id: 'honey', label: 'Honey Collections', count: counts.honey },
+    { id: 'dry-fruits', label: 'Pouch & Box Range', count: counts['dry-fruits'] },
   ];
 
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <section className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-28 sm:pt-32 pb-16">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#2A1408]/10">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#A41220] font-semibold">

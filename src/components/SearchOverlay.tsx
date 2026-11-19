@@ -54,7 +54,7 @@ export function SearchOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Live Product Search"
-      className="fixed inset-0 z-50 bg-[#2A1408]/60 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-24 px-4"
+      className="fixed inset-0 z-[150] bg-[#2A1408]/60 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-24 px-4"
       onClick={onClose}
     >
       <div
@@ -72,7 +72,7 @@ export function SearchOverlay({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Ajwa, Mazafati, Raw Honey, Walnut, Anjeer..."
+            placeholder="Search Kimia Dates, Honey with Badham, Cashew, Walnut..."
             className="flex-1 bg-transparent text-[#2A1408] placeholder:text-[#2A1408]/45 text-base focus:outline-none"
           />
           <button

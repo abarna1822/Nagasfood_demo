@@ -145,3 +145,17 @@ test('filterProducts matches query and category', () => {
   assert.equal(filterProducts(sample, '', 'honey').length, 1);
   assert.equal(filterProducts(sample, 'ajwa', 'honey').length, 0);
 });
+
+import { SEED_PRODUCTS } from '../data/seedData';
+
+test('SEED_PRODUCTS matches the 25-item NAGAS FOODS Trichy catalogue breakdown', () => {
+  assert.equal(SEED_PRODUCTS.length, 25);
+  assert.equal(SEED_PRODUCTS.filter((p) => p.category === 'dates').length, 11);
+  assert.equal(SEED_PRODUCTS.filter((p) => p.category === 'honey').length, 4);
+  assert.equal(SEED_PRODUCTS.filter((p) => p.category === 'dry-fruits').length, 10);
+  for (const item of SEED_PRODUCTS) {
+    assert.ok(item.variants.length > 0, `${item.id} must have at least one variant`);
+    assert.ok(item.variants[0].price > 0, `${item.id} price must be positive`);
+  }
+});
+

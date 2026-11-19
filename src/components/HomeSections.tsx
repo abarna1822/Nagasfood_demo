@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, Check, MapPin, Plus } from 'lucide-react';
-import { IMG_DATES, IMG_FRUITS, IMG_HONEY, IMG_NUTS } from '../data/seedData';
+import {
+  HERO_PALM_IMAGE,
+  IMG_DATES_FLATLAY,
+  IMG_DATES_PALM,
+  IMG_DATES_PILE,
+  IMG_HONEY_JAR,
+  IMG_NUTS,
+} from '../data/seedData';
 import { useNagasStore } from '../store/StoreContext';
 import type { AppView, Product } from '../types/commerce';
 import { formatINR, getWeeklyShopHours } from '../utils/commerce';
@@ -68,18 +75,21 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
   const [wipePercent, setWipePercent] = useState(52);
   const [addedShelfId, setAddedShelfId] = useState<string | null>(null);
 
-  // Interleave featured categories so adjacent shelf cards alternate visually
   const featuredList = products.filter((p) => p.featured);
-  const featuredProducts = [
-    featuredList.find((p) => p.id === 'dt-01'),
-    featuredList.find((p) => p.id === 'hn-01'),
-    featuredList.find((p) => p.id === 'df-01'),
-    featuredList.find((p) => p.id === 'df-08'),
-    featuredList.find((p) => p.id === 'dt-04'),
-    featuredList.find((p) => p.id === 'hn-02'),
-    featuredList.find((p) => p.id === 'df-03'),
-    featuredList.find((p) => p.id === 'dt-03'),
+  const preferredFeatured = [
+    featuredList.find((p) => p.id === 'kimia-dates-400'),
+    featuredList.find((p) => p.id === 'honey-badham'),
+    featuredList.find((p) => p.id === 'badham'),
+    featuredList.find((p) => p.id === 'seedless-dates-box'),
+    featuredList.find((p) => p.id === 'honey-cashew'),
+    featuredList.find((p) => p.id === 'cashew'),
+    featuredList.find((p) => p.id === 'mixed-nuts-250-box'),
+    featuredList.find((p) => p.id === 'dry-kiwi'),
   ].filter((p): p is Product => Boolean(p));
+  const featuredProducts =
+    preferredFeatured.length >= 4
+      ? preferredFeatured
+      : (featuredList.length > 0 ? featuredList : products).slice(0, 8);
   const weeklyHours = getWeeklyShopHours();
 
   useEffect(() => {
@@ -280,6 +290,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
             <video
               key={settings.heroMedia.videoUrl}
               src={settings.heroMedia.videoUrl}
+              poster={settings.heroMedia.imageUrl || HERO_PALM_IMAGE}
               autoPlay
               muted
               loop
@@ -288,7 +299,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
             />
           ) : (
             <img
-              src={settings.heroMedia.imageUrl}
+              src={settings.heroMedia.imageUrl || HERO_PALM_IMAGE}
               alt="Date palm oasis groves at golden hour"
               referrerPolicy="no-referrer"
               className={`w-full h-full object-cover ${
@@ -305,8 +316,8 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
           <div className="absolute inset-0 bg-gradient-to-b from-[#6E0B16]/75 via-transparent to-[#6E0B16]/90" />
         </div>
 
-        {/* Top Hero Strip */}
-        <div className="relative z-10 max-w-[1440px] w-full mx-auto px-4 sm:px-8 pt-8 flex items-center justify-between gap-4">
+        {/* Top Hero Strip (cleared for floating pill navbar) */}
+        <div className="relative z-10 max-w-[1440px] w-full mx-auto px-4 sm:px-8 pt-28 sm:pt-32 flex items-center justify-between gap-4">
           <p className="text-xs uppercase tracking-[0.22em] text-[#FFF7EA]/90 font-medium">
             Edamalaiapatti Pudur · Trichy-620012
           </p>
@@ -619,7 +630,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
           <div className="relative aspect-[16/9] rounded-2xl overflow-hidden border border-[#2A1408]/15 shadow-md select-none">
             {/* AFTER (Hand-sorted clean studio image) */}
             <ProductMedia
-              src={IMG_DATES}
+              src={IMG_DATES_FLATLAY}
               alt="Hand-sorted glossy Iranian dates ready to pack"
               className="w-full h-full"
             />
@@ -633,7 +644,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
               style={{ clipPath: `inset(0 ${100 - wipePercent}% 0 0)` }}
             >
               <img
-                src={IMG_FRUITS}
+                src={IMG_DATES_PILE}
                 alt="Bulk orchard arrival before sorting"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover sepia-[0.25] contrast-95"
@@ -681,7 +692,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
           <div className="lg:col-span-6 grid grid-cols-3 gap-4 items-center">
             <div className="polaroid-card bg-white p-2.5 pb-6 rounded-lg shadow-md border border-[#2A1408]/10 -rotate-3">
               <div className="aspect-[4/5] overflow-hidden rounded-xs">
-                <ProductMedia src={IMG_DATES} alt="Bam dates sorting" />
+                <ProductMedia src={IMG_DATES_PALM} alt="Dates ripening on the palm" />
               </div>
               <p className="font-script text-lg text-[#2A1408] mt-2 text-center">
                 Bam harvest
@@ -689,7 +700,7 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
             </div>
             <div className="polaroid-card bg-white p-2.5 pb-6 rounded-lg shadow-md border border-[#2A1408]/10 rotate-2 mt-6">
               <div className="aspect-[4/5] overflow-hidden rounded-xs">
-                <ProductMedia src={IMG_HONEY} alt="Wild honey glass jars" />
+                <ProductMedia src={IMG_HONEY_JAR} alt="Wild honey glass jars" />
               </div>
               <p className="font-script text-lg text-[#2A1408] mt-2 text-center">
                 raw glass jars
@@ -755,8 +766,9 @@ export function HomeSections({ onNavigate, onQuickView }: HomeSectionsProps) {
 
       {/* 8. HOURS BLOCK + 9. FIND US ANIMATED MAPS */}
       <section
+        id="find-us-section"
         ref={mapSectionRef}
-        className="py-16 sm:py-24 px-4 sm:px-8 max-w-[1440px] mx-auto"
+        className="scroll-mt-24 sm:scroll-mt-28 py-16 sm:py-24 px-4 sm:px-8 max-w-[1440px] mx-auto"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           {/* HOURS BLOCK */}

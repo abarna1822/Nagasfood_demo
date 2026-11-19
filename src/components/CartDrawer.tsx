@@ -45,7 +45,7 @@ export function CartDrawer({
       role="dialog"
       aria-modal="true"
       aria-label="Shopping Cart"
-      className="fixed inset-0 z-50 bg-[#2A1408]/60 backdrop-blur-xs flex justify-end"
+      className="fixed inset-0 z-[150] bg-[#2A1408]/60 backdrop-blur-xs flex justify-end"
       onClick={() => setIsCartOpen(false)}
     >
       <div

@@ -57,7 +57,7 @@ export function ProductQuickViewModal({
       role="dialog"
       aria-modal="true"
       aria-label={`Quick view ${product.name}`}
-      className="fixed inset-0 z-50 bg-[#2A1408]/65 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[150] bg-[#2A1408]/65 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
@@ -93,10 +93,10 @@ export function ProductQuickViewModal({
             <p className="text-xs uppercase tracking-widest text-[#A41220] font-semibold">
               {product.origin} ·{' '}
               {product.category === 'dry-fruits'
-                ? 'Nuts & Dry Fruits'
+                ? 'Pouch & Box Range'
                 : product.category === 'honey'
-                ? 'Raw Honey Jar'
-                : 'Dates Harvest'}
+                ? 'Honey Collections'
+                : 'Dates & More'}
             </p>
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2A1408] mt-1 pr-8">
               {product.name}

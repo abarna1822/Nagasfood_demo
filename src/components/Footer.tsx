@@ -1,3 +1,4 @@
+import { IMG_DATE_1, IMG_DATE_2, IMG_DATE_3 } from '../data/seedData';
 import type { AppView } from '../types/commerce';
 import { useNagasStore } from '../store/StoreContext';
 import { buildWhatsAppHref } from '../utils/commerce';
@@ -11,12 +12,31 @@ export function Footer({ onNavigate }: FooterProps) {
 
   const go = (view: AppView) => {
     onNavigate(view);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <footer className="bg-[#6E0B16] text-[#FFF7EA] pt-16 pb-10 px-4 sm:px-8 border-t border-[#C9962A]/25">
-      <div className="max-w-[1440px] mx-auto">
+    <footer className="relative overflow-hidden bg-[#6E0B16] text-[#FFF7EA] pt-16 pb-10 px-4 sm:px-8 border-t border-[#C9962A]/25">
+      {/* Subtle decorative date silhouettes from uploaded assets */}
+      <img
+        src={IMG_DATE_1}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none hidden lg:block absolute right-10 top-10 w-24 h-24 object-contain opacity-25 -rotate-12"
+      />
+      <img
+        src={IMG_DATE_2}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none hidden lg:block absolute right-36 top-20 w-16 h-16 object-contain opacity-20 rotate-12"
+      />
+      <img
+        src={IMG_DATE_3}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none hidden lg:block absolute right-16 bottom-16 w-20 h-20 object-contain opacity-20 rotate-6"
+      />
+
+      <div className="relative z-10 max-w-[1440px] mx-auto">
         <div className="border-b border-[#FFF7EA]/15 pb-10">
           <p className="text-xs uppercase tracking-[0.22em] text-[#E8A020] font-semibold">
             NAGAS FOODS · TRICHY
@@ -50,10 +70,12 @@ export function Footer({ onNavigate }: FooterProps) {
               {(
                 [
                   ['home', 'Home'],
-                  ['products', 'All 25 Products'],
                   ['about', 'Sourcing & Story'],
+                  ['products', 'All 25 Products'],
+                  ['testimonials', 'Testimonials'],
+                  ['visit', 'Find Us & Hours'],
                   ['orders', 'Track My Orders'],
-                  ['contact', 'Contact & Hours'],
+                  ['contact', 'Contact'],
                   ['admin', 'Admin Dashboard'],
                 ] as Array<[AppView, string]>
               ).map(([view, label]) => (
@@ -102,7 +124,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
         <div className="pt-6 border-t border-[#FFF7EA]/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#FFF7EA]/60">
           <p>© {new Date().getFullYear()} NAGAS FOODS, Trichy. All rights reserved.</p>
-          <p>Local storage storefront demo · Payments simulated for preview</p>
+          <p>Original Iranian Kimia dates, wild honey &amp; hand-sorted dry fruits</p>
         </div>
       </div>
     </footer>

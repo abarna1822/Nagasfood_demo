@@ -22,7 +22,6 @@ import {
   calculateDeliveryFee,
   calculateSubtotal,
   formatINR,
-  generateOrderId,
   normalizePhone,
   validateCheckoutStep1,
   validatePaymentInput,
@@ -99,15 +98,19 @@ export function CheckoutModal({
   const [walletApp, setWalletApp] = useState('Amazon Pay');
   const [paymentErrors, setPaymentErrors] = useState<ValidationErrors>({});
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (open && !confirmedOrder) {
       setStep(1);
       setErrors({});
       setPaymentErrors({});
+      setSubmitError('');
     }
     if (!open) {
       setConfirmedOrder(null);
+      setSubmitError('');
     }
   }, [open, confirmedOrder]);
 
@@ -130,7 +133,7 @@ export function CheckoutModal({
     }
   };
 
-  const handleCompletePayment = (e: React.FormEvent) => {
+  const handleCompletePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     const pErrors = validatePaymentInput(paymentMethod, {
       upiId,
@@ -143,23 +146,26 @@ export function CheckoutModal({
     setPaymentErrors(pErrors);
     if (Object.keys(pErrors).length > 0) return;
 
-    const newOrder: Order = {
-      id: generateOrderId(),
-      createdAt: new Date().toISOString(),
-      customer: {
-        ...shipping,
-        phone: normalizePhone(shipping.phone),
-      },
-      items: [...cart],
-      subtotal,
-      deliveryFee,
-      total,
-      paymentMethod,
-      stage: 'Placed',
-    };
-    placeOrder(newOrder);
-    setConfirmedOrder(newOrder);
-    setStep(4);
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const created = await placeOrder({
+        customer: {
+          ...shipping,
+          phone: normalizePhone(shipping.phone),
+        },
+        items: [...cart],
+        paymentMethod,
+      });
+      setConfirmedOrder(created);
+      setStep(4);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Unable to confirm order. Please try again.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -167,7 +173,7 @@ export function CheckoutModal({
       role="dialog"
       aria-modal="true"
       aria-label="Checkout"
-      className="fixed inset-0 z-50 bg-[#2A1408]/65 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[150] bg-[#2A1408]/65 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
@@ -667,20 +673,30 @@ export function CheckoutModal({
                 )}
               </div>
 
+              {submitError && (
+                <p className="text-xs font-medium text-[#A41220] bg-[#A41220]/10 px-3 py-2 rounded-lg">
+                  {submitError}
+                </p>
+              )}
+
               <div className="flex items-center justify-between pt-2">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#2A1408]/20 text-sm font-medium text-[#2A1408] hover:bg-[#FFF7EA] cursor-pointer"
+                  disabled={submitting}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#2A1408]/20 text-sm font-medium text-[#2A1408] hover:bg-[#FFF7EA] cursor-pointer disabled:opacity-50"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Back</span>
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-xl bg-[#1E7A46] text-[#FFFDF7] text-sm font-semibold hover:bg-[#166036] transition-colors cursor-pointer"
+                  disabled={submitting}
+                  className="px-6 py-3 rounded-xl bg-[#1E7A46] text-[#FFFDF7] text-sm font-semibold hover:bg-[#166036] transition-colors cursor-pointer disabled:opacity-60"
                 >
-                  {paymentMethod === 'Cash on Delivery'
+                  {submitting
+                    ? 'Confirming Order...'
+                    : paymentMethod === 'Cash on Delivery'
                     ? `Place COD Order (${formatINR(total)})`
                     : `Pay ${formatINR(total)} & Confirm`}
                 </button>

@@ -34,7 +34,7 @@ export function MyOrdersPage({ initialPhone = '' }: MyOrdersPageProps) {
   };
 
   return (
-    <section className="max-w-4xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <section className="max-w-4xl mx-auto px-4 sm:px-8 pt-28 sm:pt-32 pb-16">
       <div className="text-center max-w-xl mx-auto">
         <p className="text-xs uppercase tracking-widest text-[#A41220] font-semibold">
           Live Order Tracker
